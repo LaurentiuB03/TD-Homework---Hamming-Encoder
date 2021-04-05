@@ -31,26 +31,55 @@ var app = new Vue({
       // This function must be changed to allow any
       // number of data bits
       // Right now it only works for 4 data bits
-      console.log(bits.length);
-      var c4 = this.parity(
-        parseInt(bits[1].data) + parseInt(bits[2].data) + parseInt(bits[3].data)
-      );
-      var c2 = this.parity(
-        parseInt(bits[0].data) + parseInt(bits[2].data) + parseInt(bits[3].data)
-      );
-      var c1 = this.parity(
-        parseInt(bits[0].data) + parseInt(bits[1].data) + parseInt(bits[3].data)
-      );
+      var bitsArray = [];
+      for(var i=0; i < bits.length; i++)
+      {
+             bitsArray[i] = parseInt(bits[i].data);
+      }
+      var c = [];
+      var i=1, j=0;
+      while (bits.length / i >= 1)
+      {
+        c[j]=0;
+        j++;
+        i *= 2;
+      }
 
-      console.log("Control bits: " + c1 + "," + c2 + "," + c4);
-      return [
-        c1,
-        c2,
-        parseInt(bits[0].data),
-        c4,
-        parseInt(bits[1].data),
-        parseInt(bits[2].data),
-        parseInt(bits[3].data),
+      
+      bitsArray = c.slice(0,2).concat(bitsArray); // bitsArray is now [c1, c2, a3, a5, a6, a7] or [c1,c2,a3,a5,a6,a7,a9,a10,a11,a12]
+      var temp = bitsArray.slice(0,3); //we take [c1, c2, a3]
+      temp.push(c[2]); // push c4, so now we have [c1, c2, a3, c4]
+      bitsArray = temp.concat(bitsArray.slice(3,bitsArray.length)); 
+      // now bitsArray contains the control bits c1, c2 and c4, if the number of data bits is 4, we have all the control bits 
+      // so the array looks like [c1 c2 a3 c4 a5 a6 a7] or [c1 c2 a3 c4 a5 a6 a7 a9 a10 a11 a12]
+      if (bits.length == 8) //testing the 8 bits case
+      {
+        temp = bitsArray.slice(0,7);
+        temp.push(c[3]);
+        bitsArray = temp.concat(bitsArray.slice(7,bitsArray.length)); // now bitsArray contains all the control bits c1, c2 ,c4, c8
+      }
+      i=1;
+      // c1 c2 a3 c4 a5 a6 a7 c8 a9 a10 a11 a12
+      
+      var controlBit;
+      while(i <= bits.length )
+      {
+        controlBit = 0;
+        for (j=i; j<bitsArray.length; j = j+i*2)
+        {
+          for(var k=0; k<i; k++)
+            {
+              controlBit += bitsArray[j-1+k];
+            }
+          }
+          
+        bitsArray[i-1] = this.parity(controlBit);
+        i *= 2;
+      }
+      
+      
+      
+      return [ bitsArray
       ];
     },
     parity: function (number) {
